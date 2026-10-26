@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>치타어 능력시험 🐆</title>
+    <meta name="description" content="치타 말을 얼마나 알아들을 수 있나요? 5급부터 1급까지, 이모티콘으로 보는 치타어 능력시험." />
+    <meta property="og:title" content="치타어 능력시험 🐆" />
+    <meta property="og:description" content="치타 말을 얼마나 알아들을 수 있나요? 5급부터 차근차근 도전해 보세요." />
+    <meta name="theme-color" content="#FFF9F0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=Noto+Sans+KR:wght@400;700&display=swap" />
+    <script>
+      // 첫 화면부터 저장된 테마로 그려서 깜빡임을 막는다
+      try {
+        var t = localStorage.getItem('cheetahquiz-theme')
+        if (t !== 'light' && t !== 'dark') t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.dataset.theme = t
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
