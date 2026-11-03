@@ -49,8 +49,13 @@ export function shuffle(list) {
 }
 
 // 주관식 비교용: 키보드마다 붙었다 말았다 하는 변형 선택자(U+FE0F)와 공백은 무시
+// 피부색(🙆🏽), 성별(🙆‍♀️ 🙆‍♂️), 사람 종류(👨‍💻 👩‍💻 🧑‍💻)가 달라도 같은 이모티콘으로 본다
 export function normalizeEmoji(text) {
-  return text.replace(/[️\s]/g, '')
+  return text
+    .replace(/[\uFE0F\s]/gu, '')
+    .replace(/[\u{1F3FB}-\u{1F3FF}]/gu, '')
+    .replace(/\u200D[\u2640\u2642]/gu, '')
+    .replace(/[\u{1F468}\u{1F469}](?=\u200D)/gu, '\u{1F9D1}')
 }
 
 export function isWriteCorrect(input, answer) {
