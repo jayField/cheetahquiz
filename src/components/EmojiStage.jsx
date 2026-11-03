@@ -14,6 +14,16 @@ function emojiSize(text) {
 }
 
 export default function EmojiStage({ text, kind = 'emoji' }) {
+  // 빈칸: '🐆 ＿' 아래에 뜻
+  if (kind === 'blank') {
+    return (
+      <div className="stage stage-card stage-blank">
+        <span className="blank-line" aria-label="치타 더하기 빈칸">🐆 <span className="blank-slot">?</span></span>
+        <span className="stage-text">= {text}</span>
+      </div>
+    )
+  }
+
   if (kind === 'text') {
     return (
       <div className="stage stage-card">

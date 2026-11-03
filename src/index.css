@@ -584,3 +584,240 @@ button, input { font-family: inherit; color: inherit; }
 @media (prefers-reduced-motion: reduce) {
   .progress-fill { transition: none; }
 }
+
+.grade-cert {
+  display: inline-block;
+  font-size: 13px;
+  text-underline-offset: 3px;
+  padding: 6px 4px 2px 16px;
+}
+
+.btn-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--text);
+}
+
+/* 인증서: 이중 금테 + 가운데 사진 */
+.cert {
+  --gold: #B08A2E;
+  background: var(--card);
+  border: 3px double var(--gold);
+  border-radius: 6px;
+  padding: 8px;
+}
+
+:root[data-theme='dark'] .cert { --gold: #F0B95A; }
+
+.cert-inner {
+  border: 1px solid var(--gold);
+  padding: 22px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.cert-org {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 4px;
+  color: var(--text-2);
+}
+
+.cert-photo {
+  width: 168px;
+  height: 168px;
+  border-radius: 50%;
+  border: 3px solid var(--ring);
+  box-shadow: 0 0 0 6px var(--card), 0 0 0 7px var(--gold);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 14px;
+}
+
+.cert-photo img {
+  /* 크기와 위치는 faceCropStyle() 이 정한다 */
+  position: absolute;
+  max-width: none;
+  display: block;
+}
+
+.cert-grade {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 40px;
+  line-height: 1.1;
+  color: var(--title);
+}
+
+.cert-kind {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 6px;
+  color: var(--text-2);
+}
+
+.cert-name {
+  margin: 14px 0 0;
+  font-weight: 700;
+  font-size: 18px;
+  border-bottom: 1px solid var(--line);
+  padding: 0 12px 4px;
+}
+
+.cert-body {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-2);
+  word-break: keep-all;
+}
+
+.cert-meta {
+  margin: 10px 0 4px;
+  display: flex;
+  gap: 22px;
+  font-size: 13px;
+}
+
+.cert-meta div { display: flex; gap: 6px; }
+.cert-meta dt { color: var(--muted); }
+.cert-meta dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.cert-seal { color: var(--gold); margin-top: 4px; }
+.cert-seal-spots { fill: var(--card); }
+
+.cert-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.cert-name-field input {
+  min-height: 48px;
+  font-size: 16px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: var(--bw) solid var(--line);
+  background: var(--card);
+  color: var(--text);
+}
+
+.cert-name-field input:focus { outline: none; border-color: var(--primary); }
+
+/* 시작 안내 */
+.intro-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.intro-title {
+  margin: 4px 0 0;
+  font-family: var(--display);
+  font-size: 32px;
+  color: var(--title);
+}
+
+.intro-sub {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.intro-box {
+  border: var(--bw) solid var(--line);
+  background: var(--card);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+
+.intro-h {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+
+.intro-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.intro-list li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.intro-count { font-weight: 700; font-size: 16px; }
+
+.intro-desc {
+  grid-column: 1 / -1;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.intro-pass {
+  margin: 0;
+  font-size: 16px;
+}
+
+.intro-pass strong {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 30px;
+  color: var(--title);
+}
+
+.intro-note {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  word-break: keep-all;
+}
+
+.intro-start { margin-top: auto; }
+
+/* 빈칸 문제 */
+.stage-blank {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.blank-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 64px;
+  line-height: 1;
+}
+
+.blank-slot {
+  width: 76px;
+  height: 76px;
+  border-radius: 16px;
+  border: 2px dashed var(--ring);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--display);
+  font-size: 40px;
+  color: var(--muted);
+}
+
+.stage-blank .stage-text { font-size: 26px; }

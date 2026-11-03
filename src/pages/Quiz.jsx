@@ -1,18 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import { getGrade } from '../data/words.js'
-import { buildQuiz, isWriteCorrect, passScore } from '../lib/quiz.js'
-import { isUnlocked, loadProgress, saveResult } from '../lib/progress.js'
+import { PASS_POINTS, QUESTION_TYPES, buildQuiz, getSections, isWriteCorrect, isWriteType, passScore, toPoints } from '../lib/quiz.js'
 import ThemeToggle from '../components/ThemeToggle.jsx'
 import EmojiStage from '../components/EmojiStage.jsx'
 import { BackIcon, CheckIcon, CrossIcon } from '../components/Icons.jsx'
 
-const SECTION_LABEL = { choice: '객관식', reverse: '객관식', write: '주관식' }
-const QUESTION_TEXT = {
-  choice: '이 치타어의 뜻은?',
-  reverse: '이 뜻을 치타어로 쓰면?',
-  write: '치타어로 써 보세요',
-}
+// 문제 가운데 표시 방식
+const STAGE_KIND = { choice: 'emoji', trap: 'emoji', blank: 'blank' }
+// 보기가 이모티콘인 유형
+const EMOJI_CHOICES = new Set(['blank', 'reverse'])
 
 function pad(n) {
   return String(n).padStart(2, '0')
@@ -26,12 +23,17 @@ export default function QuizRoute(props) {
 
 function Quiz({ grade, theme, onToggleTheme }) {
   const info = getGrade(grade)
+  const [started, setStarted] = useState(false)
   const [round, setRound] = useState(0)
   const questions = useMemo(() => (info ? buildQuiz(info) : []), [info, round])
   const [index, setIndex] = useState(0)
   const [answers, setAnswers] = useState([])
 
-  if (!info || !isUnlocked(loadProgress(), grade)) return <Navigate to="/" replace />
+  if (!info?.ready) return <Navigate to="/" replace />
+
+  if (!started) {
+    return <Intro grade={grade} info={info} onStart={() => setStarted(true)} theme={theme} onToggleTheme={onToggleTheme} />
+  }
 
   const restart = () => {
     setRound((r) => r + 1)
@@ -47,7 +49,7 @@ function Quiz({ grade, theme, onToggleTheme }) {
   const answered = answers[index]
 
   const submit = (value) => {
-    const correct = q.type === 'write' ? isWriteCorrect(value, q.answer) : value === q.answer
+    const correct = isWriteType(q.type) ? isWriteCorrect(value, q.answer) : value === q.answer
     setAnswers((a) => [...a, { value, correct }])
   }
 
@@ -62,7 +64,7 @@ function Quiz({ grade, theme, onToggleTheme }) {
         </div>
         <div className="topbar-right">
           <span className="count">
-            <span className="visually-hidden">{SECTION_LABEL[q.type]} 문제, 전체 {questions.length}문제 중 </span>
+            <span className="visually-hidden">{QUESTION_TYPES[q.type].kind} 문제, 전체 {questions.length}문제 중 </span>
             {pad(index + 1)} / {pad(questions.length)}
           </span>
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
@@ -74,12 +76,12 @@ function Quiz({ grade, theme, onToggleTheme }) {
       </div>
 
       <div className="question">
-        <span className="section-chip">{SECTION_LABEL[q.type]}</span>
-        <span className="question-text">{QUESTION_TEXT[q.type]}</span>
-        <EmojiStage text={q.prompt} kind={q.type === 'choice' ? 'emoji' : 'text'} />
+        <span className="section-chip">{QUESTION_TYPES[q.type].kind}</span>
+        <span className="question-text">{QUESTION_TYPES[q.type].ask}</span>
+        <EmojiStage text={q.prompt} kind={STAGE_KIND[q.type] || 'text'} />
       </div>
 
-      {q.type === 'write' ? (
+      {isWriteType(q.type) ? (
         <WriteAnswer key={q.id} question={q} answered={answered} onSubmit={submit} />
       ) : (
         <ChoiceAnswer key={q.id} question={q} answered={answered} onSubmit={submit} />
@@ -98,8 +100,66 @@ function Quiz({ grade, theme, onToggleTheme }) {
   )
 }
 
+// 시작 전 안내: 문항 구성과 합격 기준
+function Intro({ grade, info, onStart, theme, onToggleTheme }) {
+  const sections = getSections(info)
+  const total = sections.reduce((sum, s) => sum + s.count, 0)
+  const perQuestion = 100 / total
+  const kinds = ['객관식', '주관식']
+    .map((kind) => [kind, sections.filter((s) => QUESTION_TYPES[s.type].kind === kind).reduce((sum, s) => sum + s.count, 0)])
+    .filter(([, n]) => n > 0)
+
+  return (
+    <main className="screen">
+      <div className="topbar">
+        <div className="topbar-left">
+          <Link to="/" className="icon-btn" aria-label="처음으로">
+            <BackIcon />
+          </Link>
+          <h1 className="quiz-title">치타어 {grade}급</h1>
+        </div>
+        <ThemeToggle theme={theme} onToggle={onToggleTheme} />
+      </div>
+
+      <section className="intro-head">
+        <div className="hero-mark" aria-hidden="true">🐆</div>
+        <p className="intro-title">{info.title}</p>
+        <p className="intro-sub">
+          {kinds.map(([kind, n]) => `${kind} ${n}`).join(' · ')} · 총 {total}문항
+          {Number.isInteger(perQuestion) && ` · 문항당 ${perQuestion}점`}
+        </p>
+      </section>
+
+      <section className="intro-box">
+        <h2 className="intro-h">문항 구성</h2>
+        <ul className="intro-list">
+          {sections.map((s) => (
+            <li key={s.type}>
+              <span className="section-chip">{QUESTION_TYPES[s.type].kind}</span>
+              <span className="intro-count">{s.count}문항</span>
+              <span className="intro-desc">{QUESTION_TYPES[s.type].desc}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="intro-box">
+        <h2 className="intro-h">합격 기준</h2>
+        <p className="intro-pass"><strong>{PASS_POINTS}점 이상</strong> 합격</p>
+        <p className="intro-note">
+          {total}문항 중 {passScore(total)}문항 이상 맞히면 합격이에요. 합격하면 인증서를 받을 수 있어요.
+        </p>
+      </section>
+
+      <button type="button" className="btn btn-primary intro-start" onClick={onStart}>
+        시작하기
+      </button>
+    </main>
+  )
+}
+
 function ChoiceAnswer({ question, answered, onSubmit }) {
-  const emojiChoices = question.type === 'reverse'
+  const emojiChoices = EMOJI_CHOICES.has(question.type)
   return (
     <div className="choices">
       {question.choices.map((choice) => {
@@ -173,14 +233,9 @@ function Result({ grade, questions, answers, onRetry, theme, onToggleTheme }) {
   const navigate = useNavigate()
   const total = questions.length
   const score = answers.filter((a) => a.correct).length
-  const need = passScore(total)
-  const passed = score >= need
+  const points = toPoints(score, total)
+  const passed = points >= PASS_POINTS
 
-  useEffect(() => {
-    saveResult(grade, score, total)
-  }, [grade, score, total])
-
-  const next = grade > 1 ? grade - 1 : null
   const wrong = questions.filter((_, i) => !answers[i]?.correct)
 
   return (
@@ -199,22 +254,22 @@ function Result({ grade, questions, answers, onRetry, theme, onToggleTheme }) {
         <div className="result-mark" aria-hidden="true">{passed ? '🐆🏆' : '🐆😢'}</div>
         <p className="result-verdict">{passed ? (grade === 1 ? '치타어 마스터!' : '합격이에요!') : '아쉬워요'}</p>
         <p className="result-score">
-          <strong>{score}</strong> / {total}
+          <strong>{points}점</strong>
         </p>
-        <p className="result-need">합격 기준 {need}문제</p>
+        <p className="result-need">{total}문항 중 {score}개 정답 · 합격 기준 {PASS_POINTS}점</p>
       </section>
 
       <div className="result-actions">
-        {passed && next ? (
-          <button type="button" className="btn btn-primary" onClick={() => navigate(`/quiz/${next}`)}>
-            {next}급 도전 →
+        {passed ? (
+          <button type="button" className="btn btn-primary" onClick={() => navigate(`/certificate/${grade}`, { state: { points, date: new Date().toISOString() } })}>
+            {grade}급 인증서 받기 →
           </button>
         ) : (
           <button type="button" className="btn btn-primary" onClick={onRetry}>
             다시 도전
           </button>
         )}
-        {passed && next && (
+        {passed && (
           <button type="button" className="btn" onClick={onRetry}>
             {grade}급 다시 풀기
           </button>

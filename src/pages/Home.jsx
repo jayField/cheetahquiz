@@ -1,16 +1,12 @@
 import { useNavigate } from 'react-router-dom'
 import { GRADES } from '../data/words.js'
-import { isPassed, isUnlocked, loadProgress } from '../lib/progress.js'
 import ThemeToggle from '../components/ThemeToggle.jsx'
-import { CheckIcon, LockIcon } from '../components/Icons.jsx'
+import { LockIcon } from '../components/Icons.jsx'
 
 const DICT_URL = 'https://cheetah.guide/dict'
 
 export default function Home({ theme, onToggleTheme }) {
   const navigate = useNavigate()
-  const progress = loadProgress()
-  // 지금 도전할 급수: 열려 있으면서 아직 합격 못 한 가장 낮은 급수
-  const current = GRADES.find((g) => isUnlocked(progress, g.grade) && !isPassed(progress, g.grade))?.grade
 
   return (
     <main className="screen">
@@ -26,37 +22,23 @@ export default function Home({ theme, onToggleTheme }) {
       </section>
 
       <ul className="grade-list">
-        {GRADES.map((g) => {
-          const unlocked = isUnlocked(progress, g.grade)
-          const passed = isPassed(progress, g.grade)
-          const record = progress[g.grade]
-          const primary = g.grade === current
-          return (
-            <li key={g.grade}>
-              <button
-                type="button"
-                className={'grade-card' + (primary ? ' is-primary' : '')}
-                disabled={!unlocked}
-                onClick={() => navigate(`/quiz/${g.grade}`)}
-              >
-                <span className="grade-num">{g.grade}급</span>
-                <span className="grade-body">
-                  <span className="grade-title">{g.title}</span>
-                  <span className="grade-desc">
-                    {!unlocked ? `${g.grade + 1}급 합격 후 열려요` : passed ? `합격 · 최고 ${record.best}/${record.total}` : g.desc}
-                  </span>
-                </span>
-                {!unlocked ? (
-                  <LockIcon label="잠김" />
-                ) : passed ? (
-                  <CheckIcon label="합격" />
-                ) : (
-                  <span className="grade-go">도전 →</span>
-                )}
-              </button>
-            </li>
-          )
-        })}
+        {GRADES.map((g) => (
+          <li key={g.grade}>
+            <button
+              type="button"
+              className={'grade-card' + (g.ready ? ' is-primary' : '')}
+              disabled={!g.ready}
+              onClick={() => navigate(`/quiz/${g.grade}`)}
+            >
+              <span className="grade-num">{g.grade}급</span>
+              <span className="grade-body">
+                <span className="grade-title">{g.title}</span>
+                {!g.ready && <span className="grade-desc">준비 중이에요</span>}
+              </span>
+              {g.ready ? <span className="grade-go">도전 →</span> : <LockIcon label="잠김" />}
+            </button>
+          </li>
+        ))}
       </ul>
 
       <footer className="home-foot">
