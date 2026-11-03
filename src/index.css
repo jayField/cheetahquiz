@@ -821,3 +821,13 @@ button, input { font-family: inherit; color: inherit; }
 }
 
 .stage-blank .stage-text { font-size: 26px; }
+
+/* 100점 만점 인증서: 캔버스 그림을 화면 폭에 맞춘다 */
+.cert-perfect {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1080 / 1520;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(40, 20, 0, .25);
+}

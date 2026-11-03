@@ -185,11 +185,15 @@ export async function downloadCertificate(el, { grade, name, body, score, date }
 
   drawSeal(ctx, W / 2, 1382, c)
 
+  await saveCanvas(canvas, `치타어-${grade}급-인증서.png`)
+}
+
+export async function saveCanvas(canvas, filename) {
   const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'))
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `치타어-${grade}급-인증서.png`
+  a.download = filename
   document.body.appendChild(a)
   a.click()
   a.remove()

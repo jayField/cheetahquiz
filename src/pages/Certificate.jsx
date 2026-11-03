@@ -1,9 +1,10 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { getGrade } from '../data/words.js'
 import ThemeToggle from '../components/ThemeToggle.jsx'
 import { BackIcon } from '../components/Icons.jsx'
-import { downloadCertificate, faceCropStyle } from '../lib/certificateImage.js'
+import { downloadCertificate, faceCropStyle, saveCanvas } from '../lib/certificateImage.js'
+import { drawPerfectCertificate } from '../lib/perfectCertificate.js'
 
 function formatDate(iso) {
   const d = iso ? new Date(iso) : new Date()
@@ -33,6 +34,31 @@ function Seal() {
   )
 }
 
+// 100점 만점 인증서: 캔버스 그림을 그대로 화면에 보여 준다
+function PerfectCert({ data, label }) {
+  const canvasRef = useRef(null)
+  const { grade, name, score, date } = data
+  const body = JSON.stringify(data.body)
+
+  useEffect(() => {
+    // 이름을 빠르게 바꿔도 마지막 그림만 남도록 따로 그린 뒤 옮긴다
+    let cancelled = false
+    const off = document.createElement('canvas')
+    drawPerfectCertificate(off, { grade, name, score, date, body: JSON.parse(body) }).then(() => {
+      const canvas = canvasRef.current
+      if (cancelled || !canvas) return
+      canvas.width = off.width
+      canvas.height = off.height
+      canvas.getContext('2d').drawImage(off, 0, 0)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [grade, name, score, date, body])
+
+  return <canvas ref={canvasRef} className="cert-perfect" width="1080" height="1520" role="img" aria-label={label} />
+}
+
 export default function Certificate({ theme, onToggleTheme }) {
   const grade = Number(useParams().grade)
   const navigate = useNavigate()
@@ -46,19 +72,31 @@ export default function Certificate({ theme, onToggleTheme }) {
   if (!info?.ready || !result) return <Navigate to="/" replace />
 
   const next = getGrade(grade - 1)?.ready ? grade - 1 : null
+  const perfect = result.points === 100
 
   const displayName = name.trim() || '이름 없는 치타'
   const body = [
     `위 사람은 치타어 능력시험 ${grade}급에 합격하여`,
     `${info.title}${eulReul(info.title)} 알아듣는 치타 친구임을 인증합니다.`,
   ]
+  const perfectBody = [
+    [[`위 사람은 치타어 능력시험 ${grade}급에서 `], ['100점 만점', true], ['을 받아']],
+    [[`${info.title}${eulReul(info.title)} 완벽하게 알아듣는 치타 친구임을 인증합니다.`]],
+  ]
   const score = `${result.points}점`
   const date = formatDate(result.date)
+  const perfectData = { grade, name: displayName, body: perfectBody, score, date }
 
   const download = async () => {
     setSaving(true)
     try {
-      await downloadCertificate(certRef.current, { grade, name: displayName, body, score, date })
+      if (perfect) {
+        const canvas = document.createElement('canvas')
+        await drawPerfectCertificate(canvas, perfectData)
+        await saveCanvas(canvas, `치타어-${grade}급-만점-인증서.png`)
+      } else {
+        await downloadCertificate(certRef.current, { grade, name: displayName, body, score, date })
+      }
     } finally {
       setSaving(false)
     }
@@ -72,41 +110,45 @@ export default function Certificate({ theme, onToggleTheme }) {
           <Link to="/" className="icon-btn" aria-label="처음으로">
             <BackIcon />
           </Link>
-          <h1 className="quiz-title">{grade}급 인증서</h1>
+          <h1 className="quiz-title">{grade}급 {perfect ? '만점 ' : ''}인증서</h1>
         </div>
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
       </div>
 
-      <article ref={certRef} className="cert" aria-label={`치타어 ${grade}급 인증서`}>
-        <div className="cert-inner">
-          <p className="cert-org">치타 가이드 공인</p>
-          <div className="cert-photo">
-            <img src="/cheetah-cub.png" alt="아기 치타" style={faceCropStyle()} />
+      {perfect ? (
+        <PerfectCert data={perfectData} label={`치타어 ${grade}급 만점 인증서`} />
+      ) : (
+        <article ref={certRef} className="cert" aria-label={`치타어 ${grade}급 인증서`}>
+          <div className="cert-inner">
+            <p className="cert-org">치타 가이드 공인</p>
+            <div className="cert-photo">
+              <img src="/cheetah-cub.png" alt="아기 치타" style={faceCropStyle()} />
+            </div>
+            <p className="cert-grade">치타어 {grade}급</p>
+            <p className="cert-kind">인 증 서</p>
+
+            <p className="cert-name">{displayName} 님</p>
+            <p className="cert-body">
+              {body[0]}
+              <br />
+              {body[1]}
+            </p>
+
+            <dl className="cert-meta">
+              <div>
+                <dt>점수</dt>
+                <dd>{score}</dd>
+              </div>
+              <div>
+                <dt>합격일</dt>
+                <dd>{date}</dd>
+              </div>
+            </dl>
+
+            <Seal />
           </div>
-          <p className="cert-grade">치타어 {grade}급</p>
-          <p className="cert-kind">인 증 서</p>
-
-          <p className="cert-name">{displayName} 님</p>
-          <p className="cert-body">
-            {body[0]}
-            <br />
-            {body[1]}
-          </p>
-
-          <dl className="cert-meta">
-            <div>
-              <dt>점수</dt>
-              <dd>{score}</dd>
-            </div>
-            <div>
-              <dt>합격일</dt>
-              <dd>{date}</dd>
-            </div>
-          </dl>
-
-          <Seal />
-        </div>
-      </article>
+        </article>
+      )}
 
       <div className="cert-name-field">
         <label htmlFor="cert-name">인증서에 넣을 이름</label>
