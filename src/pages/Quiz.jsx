@@ -7,9 +7,9 @@ import EmojiStage from '../components/EmojiStage.jsx'
 import { BackIcon, CheckIcon, CrossIcon } from '../components/Icons.jsx'
 
 // 문제 가운데 표시 방식
-const STAGE_KIND = { choice: 'emoji', trap: 'emoji', blank: 'blank' }
+const STAGE_KIND = { choice: 'emoji', trap: 'emoji', comboTrap: 'emoji', blank: 'blank', comboBlank: 'blank' }
 // 보기가 이모티콘인 유형
-const EMOJI_CHOICES = new Set(['blank', 'reverse'])
+const EMOJI_CHOICES = new Set(['blank', 'comboBlank', 'reverse'])
 
 function pad(n) {
   return String(n).padStart(2, '0')
@@ -78,7 +78,7 @@ function Quiz({ grade, theme, onToggleTheme }) {
       <div className="question">
         <span className="section-chip">{QUESTION_TYPES[q.type].kind}</span>
         <span className="question-text">{QUESTION_TYPES[q.type].ask}</span>
-        <EmojiStage text={q.prompt} kind={STAGE_KIND[q.type] || 'text'} />
+        <EmojiStage text={q.prompt} kind={STAGE_KIND[q.type] || 'text'} slots={q.slots} />
       </div>
 
       {isWriteType(q.type) ? (
@@ -142,6 +142,21 @@ function Intro({ grade, info, onStart, theme, onToggleTheme }) {
           ))}
         </ul>
       </section>
+
+      {info.guide && (
+        <section className="intro-box">
+          <h2 className="intro-h">어순 규칙</h2>
+          <p className="intro-note">{info.guide.rule}</p>
+          <ul className="guide-list">
+            {info.guide.examples.map(([cheetah, reading]) => (
+              <li key={cheetah}>
+                <span className="guide-emoji">{cheetah}</span>
+                <span className="intro-desc">{reading}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="intro-box">
         <h2 className="intro-h">합격 기준</h2>

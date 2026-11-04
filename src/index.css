@@ -822,6 +822,37 @@ button, input { font-family: inherit; color: inherit; }
 
 .stage-blank .stage-text { font-size: 26px; }
 
+.blank-line-combo {
+  gap: 6px;
+  font-size: 44px;
+}
+
+.blank-line-combo .blank-slot {
+  width: 56px;
+  height: 56px;
+  font-size: 30px;
+}
+
+.guide-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.guide-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.guide-emoji {
+  flex: none;
+  width: 104px;
+  font-size: 20px;
+}
+
 /* 100점 만점 인증서: 캔버스 그림을 화면 폭에 맞춘다 */
 .cert-perfect {
   display: block;

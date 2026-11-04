@@ -11,6 +11,8 @@ export const QUESTION_TYPES = {
   choice: { kind: '객관식', desc: '치타어를 보고 뜻 고르기', ask: '이 치타어의 뜻은?' },
   trap: { kind: '객관식', desc: '비슷한 말 함정 · 같은 분류 보기 중 고르기', ask: '비슷한 말 주의! 이 치타어의 뜻은?' },
   blank: { kind: '객관식', desc: '빈칸에 들어갈 이모티콘 고르기', ask: '빈칸에 들어갈 이모티콘은?' },
+  comboTrap: { kind: '객관식', desc: '한 글자 차이 함정 · 겹치는 조합 중 고르기', ask: '비슷한 말 주의! 이 치타어의 뜻은?' },
+  comboBlank: { kind: '객관식', desc: '조합의 빈칸에 들어갈 이모티콘 고르기', ask: '빈칸에 들어갈 이모티콘은?' },
   reverse: { kind: '객관식', desc: '뜻을 보고 치타어 고르기', ask: '이 뜻을 치타어로 쓰면?' },
   write: { kind: '주관식', desc: '뜻을 보고 이모티콘 직접 쓰기 · 정확히 같아야 정답', ask: '치타어로 써 보세요' },
   situation: { kind: '주관식', desc: '상황에 맞는 치타어 직접 쓰기 · 정확히 같아야 정답', ask: '이럴 때 치타는 뭐라고 할까요?' },
@@ -70,12 +72,10 @@ function tail(cheetah) {
   return cheetah.replace(/^🐆/, '')
 }
 
-// 오답 보기 3개. sameCategory 면 같은 분류에서 먼저 뽑고, 모자라면 다른 분류로 채운다
-function pickChoices(word, words, getValue, { sameCategory = false } = {}) {
+// 오답 보기 3개. rank 가 있으면 점수가 높은 단어부터 뽑고, 모자라면 나머지로 채운다
+function pickChoices(word, words, getValue, { rank } = {}) {
   const others = shuffle(words.filter((w) => w[0] !== word[0] && w[1] !== word[1]))
-  const ordered = sameCategory
-    ? [...others.filter((w) => w[2] === word[2]), ...others.filter((w) => w[2] !== word[2])]
-    : others
+  const ordered = rank ? others.sort((a, b) => rank(b) - rank(a)) : others
   const answer = getValue(word)
   const seen = new Set([answer])
   const wrong = []
@@ -91,17 +91,38 @@ function pickChoices(word, words, getValue, { sameCategory = false } = {}) {
 
 const meaningOf = (w) => w[1]
 const cheetahOf = (w) => w[0]
+const tailOf = (w) => tail(w[0])
+const sameCategoryAs = (word) => (w) => Number(w[2] === word[2])
 
-function makeQuestion(type, word, words) {
-  const [cheetah, meaning, , situation] = word
+// 4급 빈칸: 조합에서 한 자리를 비운다. 오답은 같은 5급 분류에서, 조합에 이미 있는 이모티콘은 빼고
+function makeComboBlank(base, parts, blankWords) {
+  const slot = Math.floor(Math.random() * parts.length)
+  const answerWord = blankWords.find((w) => tailOf(w) === parts[slot])
+  const candidates = blankWords.filter((w) => !parts.includes(tailOf(w)))
+  return {
+    ...base,
+    prompt: base.meaning,
+    answer: parts[slot],
+    slots: parts.map((part, i) => (i === slot ? null : part)),
+    choices: pickChoices(answerWord, candidates, tailOf, { rank: sameCategoryAs(answerWord) }),
+  }
+}
+
+function makeQuestion(type, word, { words, blankWords }) {
+  const [cheetah, meaning, , situation, parts] = word
   const base = { type, cheetah, meaning }
   switch (type) {
     case 'choice':
       return { ...base, prompt: cheetah, answer: meaning, choices: pickChoices(word, words, meaningOf) }
     case 'trap':
-      return { ...base, prompt: cheetah, answer: meaning, choices: pickChoices(word, words, meaningOf, { sameCategory: true }) }
+      return { ...base, prompt: cheetah, answer: meaning, choices: pickChoices(word, words, meaningOf, { rank: sameCategoryAs(word) }) }
+    case 'comboTrap':
+      // 겹치는 이모티콘이 많은 조합부터 오답으로 쓴다
+      return { ...base, prompt: cheetah, answer: meaning, choices: pickChoices(word, words, meaningOf, { rank: (w) => w[4].filter((p) => parts.includes(p)).length }) }
     case 'blank':
-      return { ...base, prompt: meaning, answer: tail(cheetah), choices: pickChoices(word, words, (w) => tail(w[0]), { sameCategory: true }) }
+      return { ...base, prompt: meaning, answer: tail(cheetah), choices: pickChoices(word, words, tailOf, { rank: sameCategoryAs(word) }) }
+    case 'comboBlank':
+      return makeComboBlank(base, parts, blankWords)
     case 'reverse':
       return { ...base, prompt: meaning, answer: cheetah, choices: pickChoices(word, words, cheetahOf) }
     case 'situation':
@@ -116,6 +137,9 @@ const NEEDS = {
   situation: (w) => !!w[3],
 }
 
+// 4급 3단어 조합
+const isLong = (w) => w[4]?.length === 3
+
 // 한 시험 안에서는 같은 치타어가 두 번 나오지 않는다
 export function buildQuiz(gradeInfo) {
   const { words } = gradeInfo
@@ -127,12 +151,17 @@ export function buildQuiz(gradeInfo) {
   const order = [...sections].sort((a, b) => !!NEEDS[b.type] - !!NEEDS[a.type])
   for (const section of order) {
     const fits = NEEDS[section.type] || (() => true)
-    const chosen = pool.filter(fits).slice(0, section.count)
+    const fitting = pool.filter(fits)
+    // long 이 있는 섹션은 3단어 조합을 그 수만큼 먼저 담고, 나머지를 2단어로 채운다
+    const long = Math.min(section.long || 0, section.count)
+    const chosen = section.long === undefined
+      ? fitting.slice(0, section.count)
+      : shuffle([...fitting.filter(isLong).slice(0, long), ...fitting.filter((w) => !isLong(w)).slice(0, section.count - long)])
     chosen.forEach((w) => pool.splice(pool.indexOf(w), 1))
     picked.set(section, chosen)
   }
 
   return sections
-    .flatMap((section) => picked.get(section).map((word) => makeQuestion(section.type, word, words)))
+    .flatMap((section) => picked.get(section).map((word) => makeQuestion(section.type, word, gradeInfo)))
     .map((q, id) => ({ ...q, id }))
 }

@@ -9,11 +9,23 @@ function emojiSize(text) {
   const n = countGraphemes(text)
   if (n <= 2) return 78
   if (n === 3) return 60
-  if (n === 4) return 48
-  return 40
+  if (n === 4) return 42
+  return 36
 }
 
-export default function EmojiStage({ text, kind = 'emoji' }) {
+export default function EmojiStage({ text, kind = 'emoji', slots }) {
+  // 4급 빈칸: 조합 중 한 자리가 비어 있다 (slots 의 null 자리)
+  if (kind === 'blank' && slots) {
+    return (
+      <div className="stage stage-card stage-blank">
+        <span className="blank-line blank-line-combo" aria-label={`치타 ${slots.map((s) => s ?? '빈칸').join(' ')}`}>
+          🐆{slots.map((s, i) => (s ? <span key={i}>{s}</span> : <span key={i} className="blank-slot">?</span>))}
+        </span>
+        <span className="stage-text">= {text}</span>
+      </div>
+    )
+  }
+
   // 빈칸: '🐆 ＿' 아래에 뜻
   if (kind === 'blank') {
     return (
