@@ -1,9 +1,10 @@
 // 100점 만점 인증서: 화면과 다운로드 이미지가 같은 캔버스 그림을 쓴다 (테마와 상관없이 금빛 다크)
 const W = 1080
 const H = 1520
-const PHOTO_SRC = '/cheetah-cub-perfect.jpg'
-// 원 안에 들어갈 정사각형 영역 (원본 884×884 기준)
-const CROP = { sx: 175, sy: 180, side: 520 }
+// 급수별 사진. crop 은 원 안에 들어갈 정사각형 영역(원본 픽셀 기준), 아직 없는 급수는 5급 사진을 쓴다
+const PHOTOS = {
+  5: { src: '/cheetah-cub-perfect.jpg', crop: { sx: 175, sy: 180, side: 520 } },
+}
 // 사진 중심
 const CX = 540
 const CY = 470
@@ -60,18 +61,20 @@ function shadow(ctx, color, blur, offsetY = 0) {
   ctx.shadowOffsetY = offsetY
 }
 
-let photo
-function loadPhoto() {
-  photo ??= new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => resolve(img)
-    img.onerror = (e) => {
-      photo = null
-      reject(e)
-    }
-    img.src = PHOTO_SRC
-  })
-  return photo
+const photos = new Map()
+function loadPhoto(src) {
+  if (!photos.has(src)) {
+    photos.set(src, new Promise((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = (e) => {
+        photos.delete(src)
+        reject(e)
+      }
+      img.src = src
+    }))
+  }
+  return photos.get(src)
 }
 
 function drawBackground(ctx) {
@@ -295,7 +298,7 @@ function drawLaurel(ctx) {
 }
 
 // 사진: 금 링 → 짙은 틈 → 금 링
-function drawPhoto(ctx, img) {
+function drawPhoto(ctx, img, crop) {
   ctx.fillStyle = radial(ctx, CX, CY, 300, [[0.66, 'rgba(255, 200, 90, .45)'], [1, 'rgba(255, 200, 90, 0)']])
   circle(ctx, CX, CY, 300)
   ctx.fill()
@@ -314,7 +317,7 @@ function drawPhoto(ctx, img) {
   ctx.save()
   circle(ctx, CX, CY, r)
   ctx.clip()
-  ctx.drawImage(img, CROP.sx, CROP.sy, CROP.side, CROP.side, CX - r, CY - r, r * 2, r * 2)
+  ctx.drawImage(img, crop.sx, crop.sy, crop.side, crop.side, CX - r, CY - r, r * 2, r * 2)
   ctx.restore()
 }
 
@@ -492,9 +495,10 @@ function drawStars(ctx) {
 
 // body: 줄마다 [글자, 굵게?] 조각 배열
 export async function drawPerfectCertificate(canvas, data) {
+  const { src, crop } = PHOTOS[data.grade] ?? PHOTOS[5]
   const sansText = ['치타 가이드 공인', `${data.name} 님`, data.score, data.date, '점수 합격일', ...data.body.flat().map(([t]) => t)].join('')
   const [img] = await Promise.all([
-    loadPhoto(),
+    loadPhoto(src),
     document.fonts.load(`140px "Do Hyeon"`, `치타어 ${data.grade}급 만점 인증서 ★ 100점`),
     document.fonts.load(`400 34px "Noto Sans KR"`, sansText),
     document.fonts.load(`700 34px "Noto Sans KR"`, sansText),
@@ -508,7 +512,7 @@ export async function drawPerfectCertificate(canvas, data) {
   drawDust(ctx)
   drawFrame(ctx)
   drawLaurel(ctx)
-  drawPhoto(ctx, img)
+  drawPhoto(ctx, img, crop)
   drawBanner(ctx)
   drawText(ctx, data)
   drawStars(ctx)
