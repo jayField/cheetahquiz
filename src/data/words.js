@@ -18,7 +18,7 @@ const basicRaw = [
   '장소|🚌|치타는 버스 타요', '장소|🚇|치타는 지하철이에요', '장소|🏥|치타는 병원 가요', '장소|✈️|치타는 여행 가고 싶어요',
 ]
 
-// 상황 문제(주관식): 상황만 보고 답이 하나로 정해지는 단어만 적는다. 키는 이모티콘
+// 상황 문제(주관식): 상황만 보고 답이 하나로 정해지는 단어만 적는다. 키는 이모티콘 (5급이 객관식만이라 지금은 출제 안 함)
 const situations = {
   '🙇': '치타가 처음 만난 친구에게 공손하게 하는 인사는?',
   '👋': '치타가 친구와 헤어질 때 손 흔들며 하는 말은?',
@@ -156,13 +156,11 @@ export const GRADES = [
     grade: 5,
     title: '기초어',
     ready: true,
-    // 객관식 20 (일반 8 · 함정 6 · 빈칸 6) + 주관식 10 (쓰기 6 · 상황 4)
+    // 입문 시험이라 객관식만 30 (뜻 고르기 15 · 치타어 고르기 9 · 함정 6). 주관식은 4급부터
     sections: [
-      { type: 'choice', count: 8 },
+      { type: 'choice', count: 15 },
+      { type: 'reverse', count: 9 },
       { type: 'trap', count: 6 },
-      { type: 'blank', count: 6 },
-      { type: 'write', count: 6 },
-      { type: 'situation', count: 4 },
     ],
     words: basicWords,
   },
